@@ -1,5 +1,5 @@
 CXX := clang++
-CXXFLAGS := -std=c++11 -Wall -Werror
+CXXFLAGS := -std=c++11 -Wall -Werror -Os
 OBJ := main.o Prim.o MinHeap.o
 
 all: main
@@ -10,12 +10,11 @@ time: main
 test: main
 	./main "graph-10-1.txt"
 
-debug: $(OBJ)
-	$(CXX) $(OBJ) -o debug
-	$(CXX) $(CXXFLAGS) -g -o $@ $^
+debug: main
+	valgrind --leak-check=full ./main "graph-10-1.txt"
 
-debig: debug
-	valgrind --leak-check=full ./debug "graph-100-1.txt"
+debig: main
+	valgrind --leak-check=full ./main "graph-100-1.txt"
 
 runbig: main
 	./main "graph-100-1.txt"
@@ -42,7 +41,7 @@ main: $(OBJ)
 main.o: main.cpp Prim.h MinHeap.h
 	$(CXX) $(CXXFLAGS) -c main.cpp
 
-MinHeap.o: MinHeap.cpp MinHeap.h debug.h
+MinHeap.o: MinHeap.cpp MinHeap.h
 	$(CXX) $(CXXFLAGS) -c MinHeap.cpp
 
 Prim.o: Prim.cpp Prim.h MinHeap.h

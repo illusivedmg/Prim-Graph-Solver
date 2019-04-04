@@ -1,51 +1,50 @@
 #include "MinHeap.h"
 
 
+MinHeap::Node::Node(int lab) 
+: mLabel(lab) {
+  mKey = INT_MAX;
+  mPrev = -1;
+}
+
+MinHeap::Node::Node(int label, int prev, int key)
+: mLabel(label), mPrev(prev), mKey(key) {
+  
+}
+
+
 MinHeap::MinHeap() { 
-  mHeap.push_back(NULL);
-  mPositions.push_back(NULL);
+  mHeap.push_back(NULL); // 1-index
+  mPositions.push_back(-1); // 1-index
 }
 
 
 MinHeap::~MinHeap() {
-  for (auto node : mPositions)
-    delete node;
+
 }
 
 
 void MinHeap::displayHeap() {
   std::cout << "Displaying Heap" << std::endl;
-  for (int c = 1; c < mHeap.size(); c++)
-    std::cout << c << ": " << mHeap[c]->mLabel << " " << mHeap[c]->mKey << std::endl;
+  for (int C = 1; C < mHeap.size(); C++)
+    std::cout << C << ": " << mHeap[C]->mLabel << " " << mHeap[C]->mKey << std::endl;
   std::cout << std::endl;
 }
 
 
 void MinHeap::displayPositions() {
   std::cout << "Displaying Positions" << std::endl;
-  for (int c = 1; c < mPositions.size(); c++)
-    std::cout << c << ": " << mPositions[c]->mLabel << " " << mPositions[c]->mKey << std::endl;
+  for (int C = 1; C < mPositions.size(); C++)
+    std::cout << C << ": " << mPositions[C] << std::endl;
   std::cout << std::endl;
 }
 
 
-int MinHeap::getPositionOfLabel(int labelToFind, bool index) {
-  for (int c = 1; c < mPositions.size(); c++) {
-    if (mPositions[c]->mLabel == labelToFind)
-      return index ? c : mPositions[c]->mKey;
-  }
-  return -1;
-}
-
-
 void MinHeap::swapPositions(int goldenChild, int scapeGoat) {
-  int gcPos = getPositionOfLabel(mHeap[goldenChild]->mLabel, true);
-  int sgPos = getPositionOfLabel(mHeap[scapeGoat]->mLabel, true);
+  mPositions[mHeap[scapeGoat]->mLabel] = goldenChild;
+  mPositions[mHeap[goldenChild]->mLabel] = scapeGoat;
 
   std::swap(mHeap[goldenChild], mHeap[scapeGoat]);
-
-  mPositions[gcPos]->mKey = scapeGoat;
-  mPositions[sgPos]->mKey = goldenChild;
 }
 
 
@@ -77,46 +76,42 @@ void MinHeap::siftDown(int parent) {
 
 
 void MinHeap::decreaseKey(int label, int key, int prev) {
-  int c = getPositionOfLabel(label, false);
-  mHeap[c]->mKey = key;
-  mHeap[c]->mPrev = prev;
-  bubbleUp(c);
+  int C = mPositions[label];
+  mHeap[C]->mKey = key;
+  mHeap[C]->mPrev = prev;
+  bubbleUp(C);
 }
 
 
 void MinHeap::insert(Node* x) {
   mHeap.push_back(x);
-  Node *posNode = new Node(x->mLabel, numElements());
-  mPositions.push_back(posNode);
+  mPositions.push_back(numElements());
   bubbleUp(numElements());
 }
 
 
 void MinHeap::makeHeap(const std::vector<Node*> &S) {
-  for (int c = 0; c < S.size(); c++ ) {
-    mHeap.push_back(S[c]);
-
-    Node *posNode = new Node(S[c]->mLabel, c+1);
-    mPositions.push_back(posNode);
+  for (int C = 0; C < S.size(); C++) {
+    mHeap.push_back(S[C]);
+    mPositions.push_back(C+1);
   }
 
-  for (int j = numElements(); j > 0; j--)
-    siftDown(j);
+  for (int B = numElements(); B > 0; B--)
+    siftDown(B);
 }
 
 
-int MinHeap::deleteMin() {
+MinHeap::Node* MinHeap::deleteMin() {
   if (isEmpty()) {
     std::cerr << "Trying to delete top element of empty heap. Exiting." << std::endl;
     exit(1);
   }
 
-  int minLabel = mHeap[1]->mLabel;
-  mPositions[getPositionOfLabel(minLabel, true)]->mKey = -1;
-
+  Node* toPop = mHeap[1];
   swapPositions(1, numElements());
   mHeap.pop_back();
-
+  mPositions[toPop->mLabel] = -1;
   siftDown(1);
-  return minLabel;
+  
+  return toPop;
 }

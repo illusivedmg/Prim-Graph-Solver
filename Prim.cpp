@@ -1,97 +1,75 @@
 #include "Prim.h"
 
 
-Edge::Edge(int dest, int weight) 
- : mDestination(dest), mWeight(weight) {
-    mNext = NULL;
+Graph::Edge::Edge(int dest, int cost) 
+ : mDest(dest), mCost(cost) {
+  
 }
 
 
-EdgeList::EdgeList() { 
-  mHead = NULL; 
+Graph::Edge::~Edge() {
+  delete mNext;
 }
 
 
-EdgeList::~EdgeList() {
-  Edge* curr = mHead;
-  Edge* next = NULL;
-  while (curr) {
-    next = curr->getNext();
-    delete curr;
-    curr = next;
-  }
-}
-
-
-Graph::Graph(bool dir)
- : mDirected(dir) {
-
+Graph::EdgeList::~EdgeList() {
+  delete mHead;
 }
 
 
 Graph::Graph(int numV, bool dir)
  : mNumVertices(numV), mDirected(dir) {
-  initEdges();
-}
+   mEdgeLists.push_back(NULL); // 1-index
 
-
-Graph::~Graph() {
-  for (auto list : mEdgeLists)
-    delete list;
-}
-
-
-void Graph::addEdge(int source, int dest, int weight) {
-  Edge* newE = new Edge(dest, weight);
-  newE->setNext(mEdgeLists[source-1]->getHead());
-  mEdgeLists[source-1]->setHead(newE);
-
-  if (!mDirected) {
-    newE = new Edge(source, weight);
-    newE->setNext(mEdgeLists[dest-1]->getHead());
-    mEdgeLists[dest-1]->setHead(newE);
-  }
-}
-
-
-void Graph::initEdges() {
   EdgeList* newEL;
-  for (int c = 0; c < mNumVertices; c++) {
+  for (int C = 0; C < mNumVertices; C++) {
     newEL = new EdgeList();
     mEdgeLists.push_back(newEL);
   }
 }
 
 
-std::istream& Graph::operator>>( std::istream& is ) {
-	int numV;
-  is >> numV;
-  setNumVertices(numV);
-  initEdges();
-	
-  int src, dest, weight;
-  while (is >> src >> dest >> weight)
-    addEdge(src, dest, weight);
+void Graph::addEdge(int source, int dest, int cost) {
+  Edge* newE = new Edge(dest, cost);
+  newE->mNext = mEdgeLists[source]->mHead;
+  mEdgeLists[source]->mHead = newE;
+
+  if (!mDirected) {
+    newE = new Edge(source, cost);
+    newE->mNext = mEdgeLists[dest]->mHead;
+    mEdgeLists[dest]->mHead = newE;
+  }
+}
+
+
+std::istream& operator>>(std::istream& is, Graph G) {
+  int src, dest, cost;
+
+  while (is >> src >> dest >> cost)
+    G.addEdge(src, dest, cost);
 
 	return is;
 }
 
 
-Prim::Prim(Graph* G, int start, std::string fname)
- : mGraph(G), mStart(start), mFileName(fname) {
-  mNumVertices = mGraph->getNumVertices();
-  mMSTSize = 0;
+Prim::Prim(Graph G, int start, std::string fname)
+ : Graph(G), mStart(start), mFileName(fname) {
+   mMSTSize = 0;
+   mMSTSet.push_back(NULL); // 1-index
 
-  for (c = 1; c <= mNumVertices; c++) {
-    mNewNode = new Node(c, INT_MAX);
-    mNodeList.push_back(mNewNode);
+  for (int C = 0; C < mNumVertices; C++) {
+    MSTNode* newMN = new MSTNode();
+    mMSTSet.push_back(newMN);
 
-    mNewMSTNode = new MSTNode(c);
-    mMSTSet.push_back(mNewMSTNode);
+    MinHeap::Node* newN = new MinHeap::Node(C+1);
+    mNodeList.push_back(newN);
   }
 
   mQ = new MinHeap();
   mQ->makeHeap(mNodeList);
+
+  MinHeap::Node startNode = MinHeap::Node(mStart, -1, 0);
+  addToMST(&startNode);
 }
 
 
@@ -103,40 +81,36 @@ Prim::~Prim() {
 
   for (auto node : mMSTSet)
     delete node;
+
+  for (auto list : mEdgeLists)
+    delete list;
 }
 
 
-void Prim::addToMST(int vertex) {
+void Prim::addToMST(MinHeap::Node* toAdd) {
+  int u = toAdd->mLabel;
+  mMSTSet[u]->mInMST = true;
+  mMSTSet[u]->mPrev = toAdd->mPrev;
+  mMSTSet[u]->mCost = toAdd->mKey;
   mMSTSize++;
-  mMSTSet[vertex-1]->mInMST = true;
-}
 
-
-void Prim::updateMSTValues(int vertex, int prev, int dist) {
-  mMSTSet[vertex-1]->mPrev = prev;
-  mMSTSet[vertex-1]->mDist = dist;
-  mQ->decreaseKey(vertex, dist, prev);
+  Edge* edgeFinder =  mEdgeLists[u]->mHead;
+  while (edgeFinder) {
+    int v = edgeFinder->mDest;
+    
+    if (!mMSTSet[v]->mInMST) {
+      int vDist = edgeFinder->mCost;
+      if (vDist < mQ->getKey(v))
+        mQ->decreaseKey(v, vDist, u);
+    }
+    edgeFinder = edgeFinder->mNext;
+  }
 }
 
 
 void Prim::solve() {
-  updateMSTValues(mStart, -1, 0);
-  do {
-    u = mQ->deleteMin();
-    addToMST(u);
-
-    mNextEdge = mGraph->getStartingEdge(u);
-    while (mNextEdge) {
-      v = mNextEdge->getDestination();
-      vDist = mNextEdge->getWeight();
-      
-      if (!mMSTSet[v-1]->mInMST && vDist < mMSTSet[v-1]->mDist) {
-        updateMSTValues(v, u, vDist);
-      }
-      
-      mNextEdge = mNextEdge->getNext();
-    }
-  } while (mMSTSize < mGraph->getNumVertices() - 1);
+  while (mMSTSize < mNumVertices)
+    addToMST(mQ->deleteMin());
 }
 
 
@@ -151,16 +125,17 @@ int Prim::printSolution(bool sort, bool path, bool silent) {
   if (path) {
     std::cout << "Minimum Spanning Tree:" << std::endl;
     std::cout << "Starting from: " << mStart << std::endl;
-    std::cout << "Vertex: Distance" << std::endl;
   }
 
   int totalCost = 0;
-  for (auto node : mMSTSet) {
-    totalCost += node->mDist;
+  for (int C = 1; C < mMSTSet.size(); C++) {
+    totalCost += mMSTSet[C]->mCost;
     if (path)
-      std::cout << "From: " << node->mPrev << ", To: " << node->mVertexNum << ", Cost: " << node->mDist << std::endl;
+      std::cout << "From: " << mMSTSet[C]->mPrev << ", To: " << C << ", Cost: " << mMSTSet[C]->mCost << std::endl;
   }
+
   if (!silent)
-    std::cout << "Total Cost for  " << mFileName << ": " << totalCost << std::endl;
+    std::cout << "Total Cost for: " << mFileName.c_str() << ": " << totalCost << std::endl;
+
   return totalCost;
 }

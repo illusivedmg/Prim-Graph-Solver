@@ -1,60 +1,56 @@
 #pragma once
 
-#include <string>
 #include <vector>
 #include <iostream>
 #include <cmath>
-#include "debug.h"
-
-
-struct Node {
-  Node(int lab, int k)
-  : mLabel(lab), mKey(k) {}
-
-  int mLabel, mKey, mPrev;
-};
+#include <climits>
 
 
 class MinHeap {
 public:
-  // init vectors as 1-indexed
+
+  struct Node {
+    Node(int label);
+
+    Node(int label, int prev, int key);
+
+    int mLabel, mPrev, mKey;
+  };
+
   MinHeap();
 
-  // delete Nodes in both lists
-  ~MinHeap();
+  virtual ~MinHeap();
 
-  // |i|
-  int numElements() { return mHeap.size()-1; };
+  int numElements() { return mHeap.size()-1; }
 
-  int top() { return mHeap[1]->mLabel; };
+  int top() { return mHeap[1]->mLabel; }
 
-  bool isEmpty() { return numElements() == 0; };
+  bool isEmpty() { return numElements() == 0; }
 
-  // i^-1(x) => get index in pos vector (true) or value of entry in posvector (false) of label
-  int getPositionOfLabel(int labeltofind, bool index); 
+  int getKey(int label) { return mHeap[mPositions[label]]->mKey; }
 
-  // swap and update in Pos vector
-  void swapPositions(int indexL, int indexR);
-
-  // prints contents of vectors
   void displayHeap();
+
   void displayPositions();
+
+  // Swap two indices in heap and update Pos vector
+  void swapPositions(int goldenChild, int scapeGoat);
 
   // compare parent with child, swap if parent bigger
   void bubbleUp(int i);
 
-  // same label as existing Node, new value for key
-  void decreaseKey(int label, int key, int prev);
-
   // compare parent with children, swap with smaller
   void siftDown(int i);
+
+  // new value for key of existing node
+  void decreaseKey(int label, int key, int prev);
 
   void insert(Node* x);
 
   void makeHeap(const std::vector<Node*> &S);
 
   // swaps and pops first/last in heap, swap/nullify in pos vector
-  int deleteMin();
+  Node* deleteMin();
 
 private:
   int Parent(int i) { return floor(i/2); };
@@ -63,9 +59,9 @@ private:
 
   int Right(int i) { return (2*i+1); };
 
-  // key = value to minimize
+  // index = position in heap, key = value to minimize
   std::vector<Node*> mHeap;
 
-  // key = tree index/position
-  std::vector<Node*> mPositions;
+  // index = label, value = position in heap
+  std::vector<int> mPositions;
 };

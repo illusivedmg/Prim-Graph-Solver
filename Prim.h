@@ -1,101 +1,73 @@
 #pragma once
 
-#include <climits>
 #include <algorithm>
+#include <iostream>
 #include "MinHeap.h"
 
 
-struct Edge {
-  Edge(int dest, int weight);
-
-  Edge* getNext() { return mNext; }
-
-  void setNext(Edge* e) { mNext = e; }
-
-  int getDestination() { return mDestination; }
-
-  int getWeight() { return mWeight; }
-
-private:
-  int mDestination, mWeight;
-  Edge* mNext;
-};
-
-
-struct EdgeList {
-  EdgeList();
-
-  ~EdgeList();
-
-  Edge* getHead() { return mHead; }
-
-  void setHead(Edge* nh) { mHead = nh; }
-
-private:
-  Edge* mHead;
-};
-
-
-// num vertices, directed or not, vec of linked list of edges per vertex
-struct Graph {
-  Graph(bool dir);
+class Graph {
+public:
+  Graph() {};
   Graph(int numV, bool dir);
 
-  ~Graph();
-
-  void initEdges();
+  virtual ~Graph() {};
 
   void addEdge(int source, int dest, int weight);
 
-  int getNumVertices() { return mNumVertices; }
-  void setNumVertices(int numV) { mNumVertices = numV; }
+protected:
+  struct Edge {
+    Edge(int dest, int weight);
+    ~Edge();
 
-  Edge* getStartingEdge(int i) { return mEdgeLists[i-1]->getHead(); }
+    int mDest, mCost;
+    Edge* mNext = NULL;
+  };
 
-  std::istream& operator>>( std::istream& is );
+  struct EdgeList {
+    ~EdgeList();
+
+    Edge* mHead = NULL;
+  };
+
+  int mNumVertices;
+  std::vector<EdgeList*> mEdgeLists;
 
 private:
-  std::vector<EdgeList*> mEdgeLists;
-  int mNumVertices;
   bool mDirected;
 };
 
-
-// Vertice in graph, included in MST when prev is nonnull. Dist is cost of incoming edge.
-struct MSTNode {
-  MSTNode(int vtx)
-  : mVertexNum(vtx) {}
-
-  bool mInMST = false;
-  int mVertexNum;
-  int mPrev = -1;
-  int mDist = INT_MAX;
-};
+std::istream& operator>>(std::istream& is, Graph G);
 
 
-struct Prim {
-  Prim(Graph* G, int start, std::string fname);
+class Prim : private Graph {
+public:
+  Prim(Graph G, int start, std::string fname);
 
   ~Prim();
 
-  void addToMST(int vertex);
-
-  // once vertex added, update edge values to lightest
-  void updateMSTValues(int vertex, int prev, int dist);
+  // add a vertex to MST w/ prev and cost values
+  // then update mQ w/ values of vertices it can reach
+  void addToMST(MinHeap::Node* toAdd);
 
   void solve();
 
   int printSolution(bool path, bool sort, bool silent);
 
 private:
-  Graph* mGraph;
-  Edge* mNextEdge;
-  Node* mNewNode;
-  std::vector<Node*> mNodeList;
-  MinHeap* mQ;
-
-  int mNumVertices, c, u, v, vDist, mStart, mMSTSize;
-  MSTNode* mNewMSTNode;
-  std::vector<MSTNode*> mMSTSet;
+  int mStart, mMSTSize;
   std::string mFileName;
+
+  // mQ -> label = vertex num; key = best distance from a vtx in MST
+  MinHeap* mQ;
+  std::vector<MinHeap::Node*> mNodeList;
+
+  // Vertices. ID is index in Set vector.
+  struct MSTNode {
+    int mPrev = -1;
+    int mCost = INT_MAX;
+    bool mInMST = false;
+  };
+
+  std::vector<MSTNode*> mMSTSet;
+
 };
