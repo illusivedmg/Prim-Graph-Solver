@@ -72,7 +72,14 @@ int main(int argc, char **argv) {
     fin >> numV;
 
     G = Graph(numV, false); 
-    fin >> G;
+    
+    int src, dest, cost, numE = 0;
+
+    while (fin >> src >> dest >> cost) {
+      G.addEdge(src, dest, cost);
+      numE++;
+    }
+
     fin.close(); 
 
     reps = 10;
@@ -97,7 +104,7 @@ int main(int argc, char **argv) {
     double clocks_per_rep = ((double)dt)/reps;
     double seconds = clocks_per_rep/CLOCKS_PER_SEC;
 
-    std::cout << numV << ", " << seconds << std::endl;
+    std::cout << numV << ", " << numE << ", " << seconds << std::endl;
   }
 
   delete P;
